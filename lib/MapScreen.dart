@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/cupertino.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,7 +10,6 @@ class NewAddressPage extends StatefulWidget {
 }
 
 class _NewAddressPageState extends State<NewAddressPage> {
-
   late GoogleMapController _controller;
   LatLng? markerPos;
   LatLng? initPos;
@@ -26,9 +24,11 @@ class _NewAddressPageState extends State<NewAddressPage> {
   String state = '';
   String pincode = '';
 
+  StreamController<LatLng> streamController = StreamController();
+
   void fetchAddressDetail(LatLng location) async {
     List<Placemark> placemarks =
-    await placemarkFromCoordinates(location.latitude, location.longitude);
+        await placemarkFromCoordinates(location.latitude, location.longitude);
     addressTitle = placemarks[0].name!;
     locality = placemarks[0].locality!;
     city = placemarks[0].subLocality!;
@@ -57,6 +57,7 @@ class _NewAddressPageState extends State<NewAddressPage> {
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
     initPos = LatLng(position.latitude, position.longitude);
+    streamController.add(initPos as LatLng);
     setState(() {
       loadingMap = false;
     });
@@ -83,29 +84,28 @@ class _NewAddressPageState extends State<NewAddressPage> {
       width: MediaQuery.of(context).size.width,
       child: (loadingMap)
           ? const Center(
-        child: CircularProgressIndicator(),
-      )
+              child: CircularProgressIndicator(),
+            )
           : GoogleMap(
-
-        zoomControlsEnabled: false,
-        myLocationEnabled: true,
-        buildingsEnabled: true,
-        indoorViewEnabled: false,
-        onMapCreated: (controller) {
-          _controller = controller;
-          setState(() {
-            fetchAddressDetail(initPos!);
-          });
-        },
-        onCameraMove: (CameraPosition pos) {
-
-        },
-        initialCameraPosition: CameraPosition(
-          target: initPos!,
-          zoom: 14.4746,
-        ),
-        mapType: MapType.normal,
-      ),
+              zoomControlsEnabled: false,
+              myLocationEnabled: true,
+              buildingsEnabled: true,
+              indoorViewEnabled: false,
+              onMapCreated: (controller) {
+                _controller = controller;
+                setState(() {
+                  fetchAddressDetail(initPos!);
+                });
+              },
+              onCameraMove: (CameraPosition pos) {
+                streamController.add(pos.target);
+              },
+              initialCameraPosition: CameraPosition(
+                target: initPos!,
+                zoom: 14.4746,
+              ),
+              mapType: MapType.normal,
+            ),
     );
   }
 
@@ -145,7 +145,6 @@ class _NewAddressPageState extends State<NewAddressPage> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -154,14 +153,17 @@ class _NewAddressPageState extends State<NewAddressPage> {
             title: searchBox(),
           ),
           body: SizedBox(
-
             child: Stack(
               alignment: Alignment.center,
               children: [
                 renderMap(),
                 Positioned(
-                  top: MediaQuery.of(context).size.height*0.4,
-                    child: Image.asset('assets/pin.png',height: 30,fit: BoxFit.cover,)),
+                    top: MediaQuery.of(context).size.height * 0.4,
+                    child: Image.asset(
+                      'assets/pin.png',
+                      height: 30,
+                      fit: BoxFit.cover,
+                    )),
                 Positioned(
                     bottom: 0,
                     child: Container(
@@ -182,7 +184,7 @@ class _NewAddressPageState extends State<NewAddressPage> {
                               Icon(
                                 Icons.location_on,
                                 color: Colors.red[200],
-                                size: MediaQuery.of(context).size.width*0.08,
+                                size: MediaQuery.of(context).size.width * 0.08,
                               ),
                               const Padding(padding: EdgeInsets.all(2)),
                               Column(
@@ -191,7 +193,7 @@ class _NewAddressPageState extends State<NewAddressPage> {
                                 children: [
                                   Text(
                                     addressTitle,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         overflow: TextOverflow.ellipsis,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 10,
@@ -199,8 +201,8 @@ class _NewAddressPageState extends State<NewAddressPage> {
                                   ),
                                   const Padding(padding: EdgeInsets.all(2)),
                                   Text(
-                                    '$city',
-                                    style: TextStyle(
+                                    city,
+                                    style: const TextStyle(
                                       fontSize: 6,
                                       color: Colors.black54,
                                     ),
@@ -226,17 +228,30 @@ class _NewAddressPageState extends State<NewAddressPage> {
                                 decoration: BoxDecoration(
                                     color: Colors.red[400],
                                     borderRadius: BorderRadius.circular(5)),
-                                height: MediaQuery.of(context).size.height*0.07,
-                                width: MediaQuery.of(context).size.width*0.8,
+                                height:
+                                    MediaQuery.of(context).size.height * 0.07,
+                                width: MediaQuery.of(context).size.width * 0.8,
                                 child: Center(
-                                  child: Text(
-                                    'Confirm Address',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
+                                    child: StreamBuilder<LatLng>(
+                                  stream: streamController.stream,
+                                  builder: (context, snapshot) {
+                                    return Column(
+                                      children: [
+                                        Text('${snapshot.data!.latitude}'),
+                                        Text('${snapshot.data!.longitude}'),
+                                      ],
+                                    );
+                                  },
+                                )
+
+                                    // Text(
+                                    //   'Confirm Address',
+                                    //   style: TextStyle(
+                                    //     color: Colors.white,
+                                    //     fontSize: 15,
+                                    //   ),
+                                    // ),
                                     ),
-                                  ),
-                                ),
                               ),
                             ),
                           )
