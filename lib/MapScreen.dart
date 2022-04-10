@@ -235,12 +235,16 @@ class _NewAddressPageState extends State<NewAddressPage> {
                                     child: StreamBuilder<LatLng>(
                                   stream: streamController.stream,
                                   builder: (context, snapshot) {
-                                    return Column(
-                                      children: [
-                                        Text('${snapshot.data!.latitude}'),
-                                        Text('${snapshot.data!.longitude}'),
-                                      ],
-                                    );
+                                    if (snapshot.hasData) {
+                                      return Column(
+                                        children: [
+                                          Text('${snapshot.data!.latitude}'),
+                                          Text('${snapshot.data!.longitude}'),
+                                        ],
+                                      );
+                                    } else {
+                                      return const CircularProgressIndicator();
+                                    }
                                   },
                                 )
 
